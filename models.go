@@ -1,13 +1,23 @@
 package main
 
-type bot struct {
-	AccessToken      string `json:"access_token"`
-	GroupID          int
-	ResponseWall     response
-	ResponseComments response
+// Bot is a main struct for parsing
+type Bot struct {
+	AccessToken string `json:"access_token"`
+	Resp        map[int]*Response
+	Result      []ResultPost
 }
 
-type response struct {
+type ResultPost struct {
+	Body    string
+	Comment string
+}
+
+type Response struct {
+	ResponseWall     responseWall
+	ResponseComments responseComments
+}
+
+type responseWall struct {
 	Wall wall `json:"response"`
 }
 
@@ -16,5 +26,26 @@ type wall struct {
 }
 
 type post struct {
-	ID int `json:"id"`
+	ID           int `json:"id"`
+	TopCommentID int
+	Likes        like   `json:"likes,omitempty"`
+	Text         string `json:"text,omitempty"`
+}
+
+type responseComments struct {
+	CommentsList comments `json:"response"`
+}
+
+type comments struct {
+	Comments []comment `json:"items"`
+}
+
+type comment struct {
+	ID    int    `json:"id"`
+	Likes like   `json:"likes,omitempty"`
+	Text  string `json:"text,omitempty"`
+}
+
+type like struct {
+	Count int `json:"count"`
 }
