@@ -1,0 +1,6 @@
+{
+  "AccessToken": "",
+  "Port": 3000,
+  "IsProduction": false,
+  "GroupListFileName": "group_list.txt"
+}

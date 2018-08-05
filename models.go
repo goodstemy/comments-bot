@@ -2,7 +2,8 @@ package main
 
 // Bot is a main struct for parsing
 type Bot struct {
-	AccessToken string `json:"access_token"`
+	Config 		*Config
+	GroupList 	[]string
 	Resp        map[int]*Response
 	Result      []ResultPost
 }
