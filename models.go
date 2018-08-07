@@ -4,8 +4,6 @@ package main
 type Bot struct {
 	Config 		*Config
 	GroupList 	[]string
-	Resp        map[int]*Response
-	Result      []ResultPost
 }
 
 type ResponseGroupId struct {
