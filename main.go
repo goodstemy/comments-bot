@@ -39,7 +39,11 @@ func main() {
 		panic(err)
 	}
 
+	resultGroupsData := []ResultGroupData{}
+
 	for _, groupName := range b.GroupList {
+		r := ResultGroupData{}
+
 		groupId, err := getGroupId(groupName, b.Config.AccessToken)
 
 		responsePostsIdList, err := b.getPostsByGroupName(groupId)
@@ -51,17 +55,25 @@ func main() {
 
 		postsIdList := responsePostsIdList.Response.Items;
 
-		for _, postId := range postsIdList {
-			commentId, err := b.getBestCommentIdOfPost(groupId, postId.ID)
+		for _, post := range postsIdList {
+			commentId, err := b.getBestCommentIdOfPost(groupId, post.ID)
 
 			if err != nil {
 				// TODO: error handling
 				log.Println(err)
 			}
 
-			log.Println(postId.ID, commentId)
+			r.Posts = append(r.Posts, PostWithBestComment{
+				PostID:    post.ID,
+				CommentID: commentId,
+			})
 		}
+
+		r.GroupId = groupId
+		resultGroupsData = append(resultGroupsData, r)
 	}
+
+	log.Println(resultGroupsData)
 }
 
 func (b *Bot) getGroupList() error {

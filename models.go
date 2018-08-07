@@ -43,4 +43,12 @@ type ResponseCommentsLikes struct {
 	Count int `json:"count"`
 }
 
+type ResultGroupData struct {
+	GroupId int
+	Posts []PostWithBestComment
+}
 
+type PostWithBestComment struct {
+	PostID int
+	CommentID int
+}
