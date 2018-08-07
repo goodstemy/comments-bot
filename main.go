@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"errors"
 )
 
 type Config struct {
@@ -39,13 +40,28 @@ func main() {
 	}
 
 	for _, groupName := range b.GroupList {
-		//go func() {
-		err := b.getPostsByGroupName(groupName)
+		groupId, err := getGroupId(groupName, b.Config.AccessToken)
+
+		responsePostsIdList, err := b.getPostsByGroupName(groupId)
 
 		if err != nil {
 			// TODO: error handling
 			log.Println(err)
 		}
+
+		postsIdList := responsePostsIdList.Response.Items;
+
+		for _, postId := range postsIdList {
+			commentId, err := b.getBestCommentIdOfPost(groupId, postId.ID)
+
+			if err != nil {
+				// TODO: error handling
+				log.Println(err)
+			}
+
+			log.Println(postId.ID, commentId)
+		}
+
 		//}()
 		//
 		//	if err != nil {
@@ -53,7 +69,7 @@ func main() {
 		//	}
 		//
 		//	for index, post := range b.Resp[groupID].ResponseWall.Wall.Posts {
-		//		commentID, err := b.getBestCommentOfPost(post.ID, groupID, index)
+		//		commentID, err := b.getBestCommentIdOfPost(post.ID, groupID, index)
 		//
 		//		if err != nil {
 		//			panic(err)
@@ -94,32 +110,26 @@ func (b *Bot) getGroupList() error {
 	return nil
 }
 
-func (b *Bot) getPostsByGroupName(groupName string) error {
-	groupId, err := getGroupId(groupName, b.Config.AccessToken)
+func (b *Bot) getPostsByGroupName(groupId int) (ResponseWall, error) {
+	r := ResponseWall{}
 
-	if err != nil {
-		return err
+	if groupId == 0 {
+		return r, errors.New("Group id cannot be equal 0")
 	}
 
-	log.Println(groupId)
+	getPostsByGroupIDURL := fmt.Sprintf(
+		"%swall.get?owner_id=%d&count=10&v=5.52&access_token=%s",
+		BaseAPIURL, groupId, b.Config.AccessToken)
 
-	//getPostsByGroupIDURL := fmt.Sprintf(
-	//	"%swall.get?owner_id=%d&count=10&v=5.52&access_token=%s",
-	//	BaseAPIURL, groupId, b.Config.AccessToken)
-	//
-	//body, err := executeRequest(getPostsByGroupIDURL)
-	//
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//log.Println(string(body))
+	body, err := executeRequest(getPostsByGroupIDURL)
 
-	//b.Resp[groupName].ResponseWall = responseWall{}
-	///
-	//	json.Unmarshal(body, &b.Resp[groupName].ResponseWall)
+	if err != nil {
+		return r, err
+	}
 
-	return nil
+	json.Unmarshal(body, &r)
+
+	return r, nil
 }
 
 func getConfig(cfg *Config) error {
@@ -173,36 +183,34 @@ func getGroupId(groupName string, accessToken string) (int, error) {
 	return -r.Response[0].ID, nil
 }
 
-//func (b *Bot) getBestCommentOfPost(postID int, groupID int, index int) (int, error) {
-//	getCommentsByIDURL := fmt.Sprintf(
-//		"%swall.getComments?owner_id=%d&post_id=%d&"+
-//			"need_likes=1&count=100&v=5.52&access_token=%s",
-//		BaseAPIURL, groupID, postID, b.AccessToken)
-//
-//	body, err := executeRequest(getCommentsByIDURL)
-//
-//	if err != nil {
-//		return 0, err
-//	}
-//
-//	b.Resp[groupID].ResponseComments = responseComments{}
-//
-//	// log.Println(string(body))
-//
-//	json.Unmarshal(body, &b.Resp[groupID].ResponseComments)
-//
-//	bestLikes := 0
-//	id := 0
-//
-//	for _, comment := range b.Resp[groupID].ResponseComments.CommentsList.Comments {
-//		if comment.Likes.Count > bestLikes {
-//			bestLikes = comment.Likes.Count
-//			id = comment.ID
-//		}
-//	}
-//
-//	return id, nil
-//}
+func (b *Bot) getBestCommentIdOfPost(groupId int, postId int) (int, error) {
+	getCommentsByIDURL := fmt.Sprintf(
+		"%swall.getComments?owner_id=%d&post_id=%d&"+
+			"need_likes=1&count=100&v=5.52&access_token=%s",
+		BaseAPIURL, groupId, postId, b.Config.AccessToken)
+
+	body, err := executeRequest(getCommentsByIDURL)
+
+	if err != nil {
+		return 0, err
+	}
+
+	r := ResponseComments{}
+
+	json.Unmarshal(body, &r)
+
+	bestLikes := 0
+	commentId := 0
+
+	for _, comment := range r.Response.Items {
+		if comment.Likes.Count > bestLikes {
+			commentId = comment.ID
+			bestLikes = comment.Likes.Count
+		}
+	}
+
+	return commentId, nil
+}
 //
 //func getAccessToken(clientID string, clientSecret string, b *Bot) error {
 //	accessTokenURL := fmt.Sprintf("https://oauth.vk.com/access_token?client_id=%s"+

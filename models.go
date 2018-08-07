@@ -16,6 +16,35 @@ type GroupId struct {
 	ID int `json:"id"`
 }
 
+type ResponseWall struct {
+	Response ResponseWallItems `json:"response"`
+}
+
+type ResponseWallItems struct {
+	Items []ResponseWallId `json:"items"`
+}
+
+type ResponseWallId struct {
+	ID int `json:"id"`
+}
+
+type ResponseComments struct {
+	Response ResponseCommentsItems `json:"response"`
+}
+
+type ResponseCommentsItems struct {
+	Items []ResponseCommentId `json:"items"`
+}
+
+type ResponseCommentId struct {
+	ID int `json:"id"`
+	Likes ResponseCommentsLikes `json:"likes"`
+}
+
+type ResponseCommentsLikes struct {
+	Count int `json:"count"`
+}
+
 type ResultPost struct {
 	Body    string
 	Comment string
