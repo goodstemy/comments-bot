@@ -40,7 +40,7 @@ func main() {
 		panic(err)
 	}
 
-	resultGroupsData := []ResultGroupData{}
+	var resultGroupsData []ResultGroupData
 	start := time.Now()
 	parsingComplete := make(chan bool, len(b.GroupList))
 
@@ -94,6 +94,12 @@ func main() {
 	}
 
 	log.Printf("Parsing of %d groups took %s", len(b.GroupList), elapsed)
+
+	for _, group := range resultGroupsData {
+		for _, post := range group.Posts {
+			b.getContentOfPost(group.GroupId, post.PostID)
+		}
+	}
 }
 
 func (b *Bot) getGroupList() error {
@@ -137,6 +143,67 @@ func (b *Bot) getPostsByGroupName(groupId int) (ResponseWall, error) {
 	return r, nil
 }
 
+func (b *Bot) getBestCommentIdOfPost(groupId int, postId int) (int, error) {
+	getCommentsByIDURL := fmt.Sprintf(
+		"%swall.getComments?owner_id=%d&post_id=%d&"+
+			"need_likes=1&count=100&v=5.52&access_token=%s",
+		BaseAPIURL, groupId, postId, b.Config.AccessToken)
+
+	body, err := executeRequest(getCommentsByIDURL)
+
+	if err != nil {
+		return 0, err
+	}
+
+	r := ResponseComments{}
+
+	json.Unmarshal(body, &r)
+
+	bestLikes := 0
+	commentId := 0
+
+	for _, comment := range r.Response.Items {
+		if comment.Likes.Count > bestLikes {
+			commentId = comment.ID
+			bestLikes = comment.Likes.Count
+		}
+	}
+
+	return commentId, nil
+}
+
+func (b *Bot) getContentOfPost(groupId int, postId int) {
+	getPostByGroupURL := fmt.Sprintf(
+		"%swall.getById?posts=%d_%d&v=5.52&access_token=%s",
+		BaseAPIURL, groupId, postId, b.Config.AccessToken)
+
+	body, err := executeRequest(getPostByGroupURL)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	log.Println(string(body))
+}
+
+func getGroupId(groupName string, accessToken string) (int, error) {
+	getPostsByGroupIDURL := fmt.Sprintf(
+		"%sgroups.getById?group_id=%s&v=5.52&access_token=%s",
+		BaseAPIURL, groupName, accessToken)
+
+	body, err := executeRequest(getPostsByGroupIDURL)
+
+	if err != nil {
+		return 0, err
+	}
+
+	r := ResponseGroupId{}
+
+	json.Unmarshal(body, &r)
+
+	return -r.Response[0].ID, nil
+}
+
 func getConfig(cfg *Config) error {
 	file, err := os.Open("config.json")
 	if err != nil {
@@ -169,49 +236,3 @@ func executeRequest(URL string) ([]byte, error) {
 	return body, err
 }
 
-func getGroupId(groupName string, accessToken string) (int, error) {
-	getPostsByGroupIDURL := fmt.Sprintf(
-		"%sgroups.getById?group_id=%s&v=5.52&access_token=%s",
-		BaseAPIURL, groupName, accessToken)
-
-	body, err := executeRequest(getPostsByGroupIDURL)
-
-	if err != nil {
-		return 0, err
-	}
-
-	r := ResponseGroupId{}
-
-	json.Unmarshal(body, &r)
-
-	return -r.Response[0].ID, nil
-}
-
-func (b *Bot) getBestCommentIdOfPost(groupId int, postId int) (int, error) {
-	getCommentsByIDURL := fmt.Sprintf(
-		"%swall.getComments?owner_id=%d&post_id=%d&"+
-			"need_likes=1&count=100&v=5.52&access_token=%s",
-		BaseAPIURL, groupId, postId, b.Config.AccessToken)
-
-	body, err := executeRequest(getCommentsByIDURL)
-
-	if err != nil {
-		return 0, err
-	}
-
-	r := ResponseComments{}
-
-	json.Unmarshal(body, &r)
-
-	bestLikes := 0
-	commentId := 0
-
-	for _, comment := range r.Response.Items {
-		if comment.Likes.Count > bestLikes {
-			commentId = comment.ID
-			bestLikes = comment.Likes.Count
-		}
-	}
-
-	return commentId, nil
-}
