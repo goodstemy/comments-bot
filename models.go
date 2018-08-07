@@ -8,6 +8,14 @@ type Bot struct {
 	Result      []ResultPost
 }
 
+type ResponseGroupId struct {
+	Response []GroupId `json:"response"`
+}
+
+type GroupId struct {
+	ID int `json:"id"`
+}
+
 type ResultPost struct {
 	Body    string
 	Comment string
@@ -50,3 +58,4 @@ type comment struct {
 type like struct {
 	Count int `json:"count"`
 }
+

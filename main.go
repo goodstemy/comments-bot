@@ -1,20 +1,20 @@
 package main
 
 import (
-	"os"
 	"bufio"
-		"fmt"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"io/ioutil"
-	)
+	"os"
+)
 
 type Config struct {
-	AccessToken  	  string
+	AccessToken       string
 	GroupListFileName string
-	Port         	  int
-	IsProduction 	  bool
+	Port              int
+	IsProduction      bool
 }
 
 // BaseAPIURL is base url for all requests
@@ -40,41 +40,40 @@ func main() {
 
 	for _, groupName := range b.GroupList {
 		//go func() {
-			err := b.getPostsByGroupName(groupName)
+		err := b.getPostsByGroupName(groupName)
 
-			if err != nil {
-				// TODO: error handling
-				log.Println(err)
-			}
+		if err != nil {
+			// TODO: error handling
+			log.Println(err)
+		}
 		//}()
-	//
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//
-	//	for index, post := range b.Resp[groupID].ResponseWall.Wall.Posts {
-	//		commentID, err := b.getBestCommentOfPost(post.ID, groupID, index)
-	//
-	//		if err != nil {
-	//			panic(err)
-	//		}
-	//
-	//		b.Resp[groupID].ResponseWall.Wall.Posts[index].TopCommentID = commentID
+		//
+		//	if err != nil {
+		//		panic(err)
+		//	}
+		//
+		//	for index, post := range b.Resp[groupID].ResponseWall.Wall.Posts {
+		//		commentID, err := b.getBestCommentOfPost(post.ID, groupID, index)
+		//
+		//		if err != nil {
+		//			panic(err)
+		//		}
+		//
+		//		b.Resp[groupID].ResponseWall.Wall.Posts[index].TopCommentID = commentID
 
-			// b.Result = append(b.Result, ResultPost{
-			// 	Body: b.Resp[groupID].ResponseWall.Wall.Posts[index].Text,
-			// })
-	//	}
-	//}
+		// b.Result = append(b.Result, ResultPost{
+		// 	Body: b.Resp[groupID].ResponseWall.Wall.Posts[index].Text,
+		// })
+		//	}
+		//}
 
-	//log.Printf("%+v", b.Result)
+		//log.Printf("%+v", b.Result)
 
-	// for _, v := range b.Resp[-114383292].ResponseWall.Wall.Posts {
-	// log.Printf("%+v", v)
-	// log.Printf("%+v\n\n", b.Resp[-114383292].ResponseComments.CommentsList.Comments[v.ID])
+		// for _, v := range b.Resp[-114383292].ResponseWall.Wall.Posts {
+		// log.Printf("%+v", v)
+		// log.Printf("%+v\n\n", b.Resp[-114383292].ResponseComments.CommentsList.Comments[v.ID])
 	}
 }
-
 
 func (b *Bot) getGroupList() error {
 	dir, _ := os.Getwd()
@@ -88,7 +87,6 @@ func (b *Bot) getGroupList() error {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 
-
 	for scanner.Scan() {
 		b.GroupList = append(b.GroupList, scanner.Text())
 	}
@@ -97,11 +95,13 @@ func (b *Bot) getGroupList() error {
 }
 
 func (b *Bot) getPostsByGroupName(groupName string) error {
-	_, err := getGroupId(groupName, b.Config.AccessToken)
+	groupId, err := getGroupId(groupName, b.Config.AccessToken)
 
 	if err != nil {
 		return err
 	}
+
+	log.Println(groupId)
 
 	//getPostsByGroupIDURL := fmt.Sprintf(
 	//	"%swall.get?owner_id=%d&count=10&v=5.52&access_token=%s",
@@ -116,8 +116,8 @@ func (b *Bot) getPostsByGroupName(groupName string) error {
 	//log.Println(string(body))
 
 	//b.Resp[groupName].ResponseWall = responseWall{}
-///
-//	json.Unmarshal(body, &b.Resp[groupName].ResponseWall)
+	///
+	//	json.Unmarshal(body, &b.Resp[groupName].ResponseWall)
 
 	return nil
 }
@@ -157,7 +157,7 @@ func executeRequest(URL string) ([]byte, error) {
 func getGroupId(groupName string, accessToken string) (int, error) {
 	log.Println(accessToken)
 	getPostsByGroupIDURL := fmt.Sprintf(
-		"%sgroup.getById?group_id=%s&v=5.52&access_token=%s",
+		"%sgroups.getById?group_id=%s&v=5.52&access_token=%s",
 		BaseAPIURL, groupName, accessToken)
 
 	body, err := executeRequest(getPostsByGroupIDURL)
@@ -166,9 +166,11 @@ func getGroupId(groupName string, accessToken string) (int, error) {
 		return 0, err
 	}
 
-	log.Println(string(body))
+	r := ResponseGroupId{}
 
-	return 0, nil
+	json.Unmarshal(body, &r)
+
+	return -r.Response[0].ID, nil
 }
 
 //func (b *Bot) getBestCommentOfPost(postID int, groupID int, index int) (int, error) {
