@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"errors"
+	"time"
 )
 
 type Config struct {
@@ -40,40 +41,59 @@ func main() {
 	}
 
 	resultGroupsData := []ResultGroupData{}
+	start := time.Now()
+	parsingComplete := make(chan bool, len(b.GroupList))
 
 	for _, groupName := range b.GroupList {
-		r := ResultGroupData{}
+		go func() {
+			r := ResultGroupData{}
 
-		groupId, err := getGroupId(groupName, b.Config.AccessToken)
+			groupId, err := getGroupId(groupName, b.Config.AccessToken)
 
-		responsePostsIdList, err := b.getPostsByGroupName(groupId)
-
-		if err != nil {
-			// TODO: error handling
-			log.Println(err)
-		}
-
-		postsIdList := responsePostsIdList.Response.Items;
-
-		for _, post := range postsIdList {
-			commentId, err := b.getBestCommentIdOfPost(groupId, post.ID)
+			responsePostsIdList, err := b.getPostsByGroupName(groupId)
 
 			if err != nil {
 				// TODO: error handling
 				log.Println(err)
 			}
 
-			r.Posts = append(r.Posts, PostWithBestComment{
-				PostID:    post.ID,
-				CommentID: commentId,
-			})
-		}
+			postsIdList := responsePostsIdList.Response.Items;
 
-		r.GroupId = groupId
-		resultGroupsData = append(resultGroupsData, r)
+			for _, post := range postsIdList {
+				commentId, err := b.getBestCommentIdOfPost(groupId, post.ID)
+
+				if err != nil {
+					// TODO: error handling
+					log.Println(err)
+					return
+				}
+
+				r.Posts = append(r.Posts, PostWithBestComment{
+					PostID:    post.ID,
+					CommentID: commentId,
+				})
+
+			}
+
+			r.GroupId = groupId
+			resultGroupsData = append(resultGroupsData, r)
+
+			parsingComplete <- true
+		}()
 	}
 
-	log.Println(resultGroupsData)
+	elapsed := time.Since(start)
+	channelsCounter := 0
+
+	for <-parsingComplete {
+		channelsCounter++
+
+		if channelsCounter == len(b.GroupList) {
+			close(parsingComplete)
+		}
+	}
+
+	log.Printf("Parsing of %d groups took %s", len(b.GroupList), elapsed)
 }
 
 func (b *Bot) getGroupList() error {
@@ -150,7 +170,6 @@ func executeRequest(URL string) ([]byte, error) {
 }
 
 func getGroupId(groupName string, accessToken string) (int, error) {
-	log.Println(accessToken)
 	getPostsByGroupIDURL := fmt.Sprintf(
 		"%sgroups.getById?group_id=%s&v=5.52&access_token=%s",
 		BaseAPIURL, groupName, accessToken)
