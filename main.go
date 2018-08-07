@@ -61,33 +61,6 @@ func main() {
 
 			log.Println(postId.ID, commentId)
 		}
-
-		//}()
-		//
-		//	if err != nil {
-		//		panic(err)
-		//	}
-		//
-		//	for index, post := range b.Resp[groupID].ResponseWall.Wall.Posts {
-		//		commentID, err := b.getBestCommentIdOfPost(post.ID, groupID, index)
-		//
-		//		if err != nil {
-		//			panic(err)
-		//		}
-		//
-		//		b.Resp[groupID].ResponseWall.Wall.Posts[index].TopCommentID = commentID
-
-		// b.Result = append(b.Result, ResultPost{
-		// 	Body: b.Resp[groupID].ResponseWall.Wall.Posts[index].Text,
-		// })
-		//	}
-		//}
-
-		//log.Printf("%+v", b.Result)
-
-		// for _, v := range b.Resp[-114383292].ResponseWall.Wall.Posts {
-		// log.Printf("%+v", v)
-		// log.Printf("%+v\n\n", b.Resp[-114383292].ResponseComments.CommentsList.Comments[v.ID])
 	}
 }
 
@@ -211,27 +184,3 @@ func (b *Bot) getBestCommentIdOfPost(groupId int, postId int) (int, error) {
 
 	return commentId, nil
 }
-//
-//func getAccessToken(clientID string, clientSecret string, b *Bot) error {
-//	accessTokenURL := fmt.Sprintf("https://oauth.vk.com/access_token?client_id=%s"+
-//		"&client_secret=%s&v=5.80&grant_type=client_credentials",
-//		clientID, clientSecret)
-//
-//	resp, err := http.Get(accessTokenURL)
-//
-//	if err != nil {
-//		return err
-//	}
-//
-//	defer resp.Body.Close()
-//
-//	body, err := ioutil.ReadAll(resp.Body)
-//
-//	if err != nil {
-//		return err
-//	}
-//
-//	json.Unmarshal(body, &b)
-//
-//	return nil
-//}
