@@ -10,11 +10,14 @@ import (
 	"os"
 	"errors"
 	"time"
+	"github.com/Syfaro/telegram-bot-api"
 )
 
 type Config struct {
-	AccessToken       string
+	VKAccessToken     string
+	TGAccessToken     string
 	GroupListFileName string
+	TGChatID          int64
 	Port              int
 	IsProduction      bool
 }
@@ -30,15 +33,42 @@ func main() {
 		panic(err)
 	}
 
-	b := Bot{
-		Config: &cfg,
+	bot, err := tgbotapi.NewBotAPI(cfg.TGAccessToken)
+
+	if err != nil {
+		panic(err)
 	}
+
+	b := Bot{
+		Config:      &cfg,
+		BotInstance: bot,
+	}
+
+	b.BotInstance.Debug = true
 
 	err = b.getGroupList()
 
 	if err != nil {
 		panic(err)
 	}
+
+	//u := tgbotapi.NewUpdate(0)
+	//u.Timeout = 60
+	//
+	//updates, err := b.BotInstance.GetUpdatesChan(u)
+	//
+	//for update := range updates {
+	//	if update.Message == nil {
+	//		continue
+	//	}
+	//
+	//	log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+	//
+	//	msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+	//	msg.ReplyToMessageID = update.Message.MessageID
+	//
+	//	b.BotInstance.Send(msg)
+	//}
 
 	var resultGroupsData []ResultGroupData
 	start := time.Now()
@@ -48,7 +78,7 @@ func main() {
 		go func() {
 			r := ResultGroupData{}
 
-			groupId, err := getGroupId(groupName, b.Config.AccessToken)
+			groupId, err := getGroupId(groupName, b.Config.VKAccessToken)
 
 			responsePostsIdList, err := b.getPostsByGroupName(groupId)
 
@@ -58,7 +88,6 @@ func main() {
 			}
 
 			postsIdList := responsePostsIdList.Response.Items;
-
 			for _, post := range postsIdList {
 				commentId, err := b.getBestCommentIdOfPost(groupId, post.ID)
 
@@ -130,7 +159,7 @@ func (b *Bot) getPostsByGroupName(groupId int) (ResponseWall, error) {
 
 	getPostsByGroupIDURL := fmt.Sprintf(
 		"%swall.get?owner_id=%d&count=10&v=5.52&access_token=%s",
-		BaseAPIURL, groupId, b.Config.AccessToken)
+		BaseAPIURL, groupId, b.Config.VKAccessToken)
 
 	body, err := executeRequest(getPostsByGroupIDURL)
 
@@ -147,7 +176,7 @@ func (b *Bot) getBestCommentIdOfPost(groupId int, postId int) (int, error) {
 	getCommentsByIDURL := fmt.Sprintf(
 		"%swall.getComments?owner_id=%d&post_id=%d&"+
 			"need_likes=1&count=100&v=5.52&access_token=%s",
-		BaseAPIURL, groupId, postId, b.Config.AccessToken)
+		BaseAPIURL, groupId, postId, b.Config.VKAccessToken)
 
 	body, err := executeRequest(getCommentsByIDURL)
 
@@ -175,7 +204,7 @@ func (b *Bot) getBestCommentIdOfPost(groupId int, postId int) (int, error) {
 func (b *Bot) getContentOfPost(groupId int, postId int) {
 	getPostByGroupURL := fmt.Sprintf(
 		"%swall.getById?posts=%d_%d&v=5.52&access_token=%s",
-		BaseAPIURL, groupId, postId, b.Config.AccessToken)
+		BaseAPIURL, groupId, postId, b.Config.VKAccessToken)
 
 	body, err := executeRequest(getPostByGroupURL)
 
@@ -183,7 +212,17 @@ func (b *Bot) getContentOfPost(groupId int, postId int) {
 		log.Println(err)
 	}
 
-	log.Println(string(body))
+	r := ResultContentOfPost{}
+
+	json.Unmarshal(body, &r)
+
+	log.Println("%+v", r)
+
+	for _, resp := range r.Response {
+		msg := tgbotapi.NewMessage(b.Config.TGChatID, resp.Text)
+		b.BotInstance.Send(msg);
+	}
+
 }
 
 func getGroupId(groupName string, accessToken string) (int, error) {
@@ -235,4 +274,3 @@ func executeRequest(URL string) ([]byte, error) {
 
 	return body, err
 }
-

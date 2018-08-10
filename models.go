@@ -1,9 +1,12 @@
 package main
 
+import "github.com/Syfaro/telegram-bot-api"
+
 // Bot is a main struct for parsing
 type Bot struct {
-	Config 		*Config
-	GroupList 	[]string
+	Config      *Config
+	GroupList   []string
+	BotInstance *tgbotapi.BotAPI
 }
 
 type ResponseGroupId struct {
@@ -35,7 +38,7 @@ type ResponseCommentsItems struct {
 }
 
 type ResponseCommentId struct {
-	ID int `json:"id"`
+	ID    int                   `json:"id"`
 	Likes ResponseCommentsLikes `json:"likes"`
 }
 
@@ -45,10 +48,39 @@ type ResponseCommentsLikes struct {
 
 type ResultGroupData struct {
 	GroupId int
-	Posts []PostWithBestComment
+	Posts   []PostWithBestComment
 }
 
 type PostWithBestComment struct {
-	PostID int
+	PostID    int
 	CommentID int
+}
+
+type ResultContentOfPost struct {
+	Response []ResponseContentOfPost `json:"response"`
+}
+
+type ResponseContentOfPost struct {
+	Text        string             `json:"text"`
+	Attachments []AttachmentOfPost `json:"attachments"`
+}
+
+type AttachmentOfPost struct {
+	Type  string                    `json:"type"`
+	Photo AttachmentOfPostPhotoType `json:"photo,omitempty"`
+}
+
+type AttachmentOfPostPhotoType struct {
+	ID      int `json:"id"`
+	OwnerID int `json:"owner_id"`
+}
+
+type ToPost struct {
+	GroupID map[int][]GroupContentToPost
+}
+
+type GroupContentToPost struct {
+	Text        string
+	CommentText string
+	Photos      []string
 }
